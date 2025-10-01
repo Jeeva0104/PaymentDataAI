@@ -37,22 +37,93 @@ check_docker() {
     fi
 }
 
+# Function to check if a service is ready
+check_service_health() {
+    local service_name="$1"
+    local url="$2"
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -f "$url" > /dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
+# Function to check if frontend is ready
+check_frontend_health() {
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -f "http://localhost:3000" > /dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
+# Function to wait for services and display endpoints
+wait_for_services() {
+    print_status "Waiting for services to be ready..."
+    echo ""
+    
+    # Wait for backend health check
+    print_status "Checking backend service..."
+    if check_service_health "Flask App" "http://localhost:5000/health"; then
+        print_success "✓ Backend endpoint ready: http://localhost:5000"
+    else
+        print_warning "⚠ Backend endpoint may not be ready: http://localhost:5000"
+    fi
+    
+    # Wait for frontend
+    print_status "Checking frontend service..."
+    if check_frontend_health; then
+        print_success "✓ Frontend endpoint ready: http://localhost:3000"
+    else
+        print_warning "⚠ Frontend endpoint may not be ready: http://localhost:3000"
+    fi
+    
+    echo ""
+    print_success "🚀 Payment Data AI Application Ready!"
+    echo ""
+    echo -e "${GREEN}📱 Application Endpoints:${NC}"
+    echo -e "  ${BLUE}Frontend:${NC} http://localhost:3000"
+    echo -e "  ${BLUE}Backend:${NC}  http://localhost:5000"
+    echo ""
+    echo -e "${YELLOW}🔧 Development Services:${NC}"
+    echo -e "  ${BLUE}MySQL:${NC}   localhost:3306"
+    echo -e "  ${BLUE}Redis:${NC}    localhost:6379"
+    echo ""
+    echo -e "${BLUE}💡 Quick Commands:${NC}"
+    echo "  View logs:    ./docker-dev.sh logs"
+    echo "  Check status: ./docker-dev.sh status"
+    echo "  Stop:         ./docker-dev.sh stop"
+    echo ""
+}
+
 # Function to build and start services
 start_dev() {
-    print_status "Starting development environment..."
+    print_status "Starting Payment Data AI development environment..."
     check_docker
     
     # Build and start services
+    print_status "Building and starting containers..."
     docker-compose up --build -d
     
-    print_success "Development environment started!"
-    print_status "Services available at:"
-    echo "  - Flask App: http://localhost:5000"
-    echo "  - MySQL: localhost:3306"
-    echo "  - Redis: localhost:6379"
-    echo ""
-    print_status "To view logs: ./docker-dev.sh logs"
-    print_status "To stop: ./docker-dev.sh stop"
+    if [ $? -eq 0 ]; then
+        print_success "Containers started successfully!"
+        wait_for_services
+    else
+        print_error "Failed to start containers"
+        exit 1
+    fi
 }
 
 # Function to stop services
@@ -90,13 +161,40 @@ rebuild_app() {
 
 # Function to show status
 show_status() {
-    print_status "Service status:"
+    print_status "Payment Data AI Application Status"
+    echo ""
+    
+    print_status "Container Status:"
     docker-compose ps
     echo ""
-    print_status "Health checks:"
+    
+    # Check endpoint availability
+    print_status "Endpoint Availability:"
+    
+    # Check backend
+    if curl -s -f "http://localhost:5000/health" > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓ Backend:${NC}  http://localhost:5000 (Ready)"
+    else
+        echo -e "  ${RED}✗ Backend:${NC}  http://localhost:5000 (Not responding)"
+    fi
+    
+    # Check frontend
+    if curl -s -f "http://localhost:3000" > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓ Frontend:${NC} http://localhost:3000 (Ready)"
+    else
+        echo -e "  ${RED}✗ Frontend:${NC} http://localhost:3000 (Not responding)"
+    fi
+    
+    echo ""
+    print_status "Service Health Checks:"
     echo "  Flask App: $(curl -s http://localhost:5000/health | jq -r '.status' 2>/dev/null || echo 'Not responding')"
     echo "  MySQL: $(docker-compose exec mysql mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} 2>/dev/null | grep -q 'alive' && echo 'alive' || echo 'not responding')"
     echo "  Redis: $(docker-compose exec redis redis-cli ping 2>/dev/null || echo 'not responding')"
+    
+    echo ""
+    echo -e "${YELLOW}🔧 Development Services:${NC}"
+    echo -e "  ${BLUE}MySQL:${NC}   localhost:3306"
+    echo -e "  ${BLUE}Redis:${NC}    localhost:6379"
 }
 
 # Function to enter app container
