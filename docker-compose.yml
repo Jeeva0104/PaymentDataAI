@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./server
+      target: development
+    container_name: payment_flask_app
+    restart: unless-stopped
+    
+    # Port mapping for Flask application
+    ports:
+      - "5000:5000"
+    
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    
+    # Additional environment variables for containerized networking
+    environment:
+      - PYTHONPATH=/app
+    
+    # Volume mounts for live code synchronization
+    volumes:
+      - ./server:/app:cached
+      - /app/__pycache__
+      - app_logs:/app/logs
+    
+    # Service dependencies
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    # Health check for Flask app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+      start_period: 40s
+    
+    # Network configuration
+    networks:
+      - payment_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: payment_redis
+    restart: unless-stopped
+    
+    # Port mapping for Redis connection
+    ports:
+      - "${REDIS_PORT}:6379"
+    
+    # Volume for Redis data persistence
+    volumes:
+      - redis_data:/data
+    
+    # Redis configuration
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+      start_period: 10s
+    
+    # Network configuration
+    networks:
+      - payment_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: ${CONTAINER_NAME}
+    restart: unless-stopped
+    
+    # Environment variables from .env file
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: ${TZ}
+    
+    # Port mapping for MySQL Workbench connection
+    ports:
+      - "${MYSQL_PORT}:3306"
+    
+    # Volume mounts for data persistence and scripts
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./server:/docker-entrypoint-initdb.d:ro
+      - mysql_logs:/var/log/mysql
+      - ./mysql-config:/etc/mysql/conf.d:ro
+    
+    # MySQL configuration
+    command: >
+      --character-set-server=${MYSQL_CHARSET}
+      --collation-server=${MYSQL_COLLATION}
+      --max-connections=${MYSQL_MAX_CONNECTIONS}
+      --slow-query-log=${MYSQL_SLOW_QUERY_LOG}
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --log-error=/var/log/mysql/error.log
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+      --default-authentication-plugin=mysql_native_password
+    
+    # Health check to ensure MySQL is ready
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+      start_period: 40s
+    
+    # Network configuration
+    networks:
+      - payment_network
+
+  frontend:
+    build:
+      context: ./client
+      target: development
+    container_name: payment_frontend
+    restart: unless-stopped
+    
+    # Port mapping for React development server
+    ports:
+      - "3000:3000"
+    
+    # Environment variables for container networking
+    environment:
+      - REACT_APP_API_URL=http://app:5000
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
+    
+    # Volume mounts for live code synchronization
+    volumes:
+      - ./client:/app:cached
+      - /app/node_modules
+    
+    # Service dependencies
+    depends_on:
+      - app
+    
+    # Network configuration
+    networks:
+      - payment_network
+
+  # ========================================
+  # MIGRATION SERVICE
+  # ========================================
+  
+  migration:
+    image: mysql:8.0
+    container_name: payment_migration
+    restart: "no"  # Runs once and exits
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MIGRATION_TYPE=${MIGRATION_TYPE:-full}  # Default to full migration
+      - MYSQL_MAX_RETRIES=30
+      - MYSQL_RETRY_INTERVAL=2
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./server/migration:/migrations:ro
+      - ./scripts:/scripts:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - payment_network
+    command: ["/scripts/run-migration.sh"]
+
+# Named volumes for data persistence
+volumes:
+  mysql_data:
+    name: ${MYSQL_DATA_VOLUME}
+    driver: local
+  mysql_logs:
+    name: payment_mysql_logs
+    driver: local
+  redis_data:
+    name: payment_redis_data
+    driver: local
+  app_logs:
+    name: payment_app_logs
+    driver: local
+
+# Custom network for service isolation
+networks:
+  payment_network:
+    name: payment_network
+    driver: bridge
