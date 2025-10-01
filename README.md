@@ -2,6 +2,27 @@
 
 ## Architecture
 
+### System Overview Diagram
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   React Client  │◄──►│  Flask + SocketIO │◄──►│   Data Layer    │
+│   (Frontend)    │    │    (Backend)     │    │ MySQL + Redis   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         └──────────────►│  LangChain AI   │◄─────────────┘
+                        │    Pipeline     │
+                        └─────────────────┘
+```
+
+**Components:**
+- **React Client**: Modern web interface with real-time chat capabilities
+- **Flask + SocketIO**: Backend server handling REST APIs and WebSocket communication
+- **Data Layer**: MySQL database with Redis caching for optimal performance
+- **LangChain AI Pipeline**: Advanced AI processing for natural language to SQL conversion and data summarization
+
+**Data Flow**: User queries flow through WebSocket connections to the AI pipeline, which processes natural language, generates and executes SQL queries, and returns AI-powered insights in real-time.
+
 ### App State Structure
 ```python
 app_state = {
@@ -60,6 +81,17 @@ WEBSOCKET_ASYNC_MODE=eventlet
 ```
 
 ## Installation & Setup
+
+### Environment Setup (Required First Step)
+
+Before running the application, copy the environment template to create your local configuration:
+
+```bash
+# Copy environment template and create local configuration
+cp .env.example .env
+```
+
+**Note**: After copying, review and update the `.env` file with your specific configuration values if needed. The default values work for the Docker development environment.
 
 ### Option 1: Full Docker Development (Recommended)
 
@@ -189,8 +221,3 @@ open test_client.html
 python -m http.server 8000
 # Then navigate to http://localhost:8000/test_client.html
 ```
-
-
-
-
-
