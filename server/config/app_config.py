@@ -2,8 +2,9 @@ import os
 from dotenv import load_dotenv
 from typing import Dict, Any
 
+
 def load_dot():
-    raise NotImplementedError
+    load_dotenv()
 
 
 def load_config() -> Dict[str, Any]:

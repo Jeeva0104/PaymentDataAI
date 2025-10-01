@@ -33,7 +33,6 @@ class WebSocketManager:
             }
             
             self.socketio = SocketIO(app, **socketio_config)
-            logger.info(f"WebSocket initialized with async_mode: {socketio_config['async_mode']}")
             
         except Exception as e:
             logger.error(f"Error initializing WebSocket: {e}")
@@ -64,7 +63,6 @@ class WebSocketManager:
             'user_data': user_data or {},
             'message_count': 0
         }
-        logger.info(f"New WebSocket connection added: {session_id}")
     
     def remove_connection(self, session_id: str) -> None:
         """
@@ -75,7 +73,6 @@ class WebSocketManager:
         """
         if session_id in self.active_connections:
             del self.active_connections[session_id]
-            logger.info(f"WebSocket connection removed: {session_id}")
     
     def increment_message_count(self, session_id: str) -> None:
         """
@@ -131,7 +128,6 @@ class WebSocketManager:
                 self.socketio.emit(event, data, room=room)
             else:
                 self.socketio.emit(event, data, broadcast=True)
-            logger.info(f"Broadcasted {event} to {'room ' + room if room else 'all clients'}")
         except Exception as e:
             logger.error(f"Error broadcasting message: {e}")
     
@@ -146,7 +142,6 @@ class WebSocketManager:
         """
         try:
             self.socketio.emit(event, data, room=session_id)
-            logger.info(f"Sent {event} to client {session_id}")
         except Exception as e:
             logger.error(f"Error sending message to client {session_id}: {e}")
     

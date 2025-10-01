@@ -277,6 +277,8 @@ def build_user_context(user_query: str) -> str:
     logger.debug(
         f"[USER_FLOW_START] query_length={len(user_query) if user_query else 0}"
     )
+    
+    logger.info("Starting prompt generation")
 
     try:
         # Validate inputs
@@ -294,17 +296,15 @@ def build_user_context(user_query: str) -> str:
         # Build appropriate context based on classification
         context_start = time.time()
         if not is_analytics:
-            logger.info(f"[NON_ANALYTICS_QUERY] {reason}: {user_query}")
             user_context = _build_non_analytics_context(user_query, reason)
         else:
-            logger.info(f"[ANALYTICS_QUERY] {reason}: {user_query}")
             user_context = _build_user_request_context(user_query)
 
         context_duration = time.time() - context_start
         logger.debug(f"[USER_CONTEXT_BUILD] completed in {context_duration:.3f}s")
 
         total_duration = time.time() - start_time
-        logger.info(f"[USER_FLOW_SUCCESS] completed in {total_duration:.3f}s")
+        logger.info("Prompt generation completed")
         return user_context
 
     except Exception as e:

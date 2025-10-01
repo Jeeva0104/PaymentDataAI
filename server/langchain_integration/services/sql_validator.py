@@ -33,7 +33,6 @@ class SQLValidatorService:
             config: Validation configuration, uses defaults if None
         """
         self.config = config or ValidationConfig()
-        logger.info("SQL Validator Service initialized")
     
     def validate_sql(self, sql_query: str, internal_id: str = "system") -> SQLValidationResult:
         """
@@ -49,8 +48,6 @@ class SQLValidatorService:
         start_time = time.time()
         
         try:
-            logger.info("[SQL_VALIDATOR] Starting SQL validation")
-            
             # Basic input validation
             if not sql_query or not sql_query.strip():
                 return SQLValidationResult(
@@ -90,7 +87,6 @@ class SQLValidatorService:
             validation_time_ms = (time.time() - start_time) * 1000
             
             if validation_result.isValid:
-                logger.info(f"[SQL_VALIDATOR] SQL validation passed in {validation_time_ms:.2f}ms")
                 if validation_result.validated_tables:
                     logger.debug(f"[SQL_VALIDATOR] Validated tables: {validation_result.validated_tables}")
             else:
@@ -189,8 +185,6 @@ class SQLValidatorService:
         """
         results = []
         
-        logger.info(f"[SQL_VALIDATOR] Starting batch validation of {len(sql_queries)} queries")
-        
         for i, sql_query in enumerate(sql_queries):
             try:
                 result = self.validate_sql(sql_query, f"{internal_id}_batch_{i}")
@@ -204,7 +198,6 @@ class SQLValidatorService:
         
         # Summary logging
         valid_count = sum(1 for r in results if r.isValid)
-        logger.info(f"[SQL_VALIDATOR] Batch validation complete: {valid_count}/{len(sql_queries)} valid")
         
         return results
     
@@ -216,7 +209,6 @@ class SQLValidatorService:
             new_config: New validation configuration
         """
         self.config = new_config
-        logger.info("SQL Validator configuration updated")
     
     def get_validation_stats(self) -> dict:
         """

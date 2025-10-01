@@ -35,8 +35,6 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
-    logger.info("Starting Flask application initialization...")
-    
     # Initialize app state
     if not initialize_app_state(app):
         logger.error("Failed to initialize app state")
@@ -56,9 +54,6 @@ def create_app():
     
     # Register HTTP routes
     register_routes(app)
-    
-    logger.info("Flask application created and configured successfully")
-    logger.info(f"Available routes: {[rule.rule for rule in app.url_map.iter_rules()]}")
     
     return app
 
@@ -284,7 +279,7 @@ if __name__ == '__main__':
         config = app_state.config
         
         # Run the application with SocketIO for development
-        logger.info("Starting Flask application with SocketIO in development mode...")
+        logger.info("Application running on port 5000")
         socketio.run(
             app,
             host='0.0.0.0',
@@ -294,7 +289,7 @@ if __name__ == '__main__':
         )
         
     except KeyboardInterrupt:
-        logger.info("Application stopped by user")
+        pass
     except Exception as e:
         logger.error(f"Failed to start application: {e}")
         sys.exit(1)

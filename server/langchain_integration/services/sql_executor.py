@@ -29,7 +29,6 @@ class SQLExecutorService:
             config: Execution configuration, uses defaults if None
         """
         self.config = config or ExecutionConfig()
-        logger.info("SQL Executor Service initialized")
     
     def execute_sql(self, sql_query: str, app_state) -> SQLExecutionResult:
         """
@@ -47,8 +46,6 @@ class SQLExecutorService:
         cursor = None
         
         try:
-            logger.info("[SQL_EXECUTOR] Starting SQL execution")
-            
             # Validate inputs
             if not sql_query or not sql_query.strip():
                 return SQLExecutionResult(
@@ -80,7 +77,9 @@ class SQLExecutorService:
                 cursor._connection.autocommit = True
             
             # Execute the query
+            logger.info("Starting SQL execution")
             cursor.execute(sql_query)
+            logger.info("SQL execution completed")
             
             # Fetch results
             if cursor.description:
@@ -101,8 +100,6 @@ class SQLExecutorService:
                 
                 execution_time_ms = (time.time() - start_time) * 1000
                 
-                logger.info(f"[SQL_EXECUTOR] Query executed successfully in {execution_time_ms:.2f}ms, returned {len(rows)} rows")
-                
                 return SQLExecutionResult(
                     success=True,
                     data=serializable_data,
@@ -116,8 +113,6 @@ class SQLExecutorService:
                 # Query doesn't return data (INSERT, UPDATE, DELETE)
                 affected_rows = cursor.rowcount
                 execution_time_ms = (time.time() - start_time) * 1000
-                
-                logger.info(f"[SQL_EXECUTOR] Query executed successfully in {execution_time_ms:.2f}ms, affected {affected_rows} rows")
                 
                 return SQLExecutionResult(
                     success=True,
@@ -169,18 +164,8 @@ class SQLExecutorService:
             session_id = context.get('session_id', 'unknown')
             user_query = context.get('user_query', 'unknown')
             
-            logger.info(f"[SQL_EXECUTOR] Executing query for session {session_id}")
-            
             # Execute the query
             result = self.execute_sql(sql_query, app_state)
-            
-            # Add context information to successful results
-            if result.success and self.config.enable_query_logging:
-                logger.info(
-                    f"[SQL_EXECUTOR] Context execution complete - "
-                    f"Session: {session_id}, Rows: {result.row_count}, "
-                    f"Time: {result.execution_time_ms:.2f}ms"
-                )
             
             return result
             
@@ -347,7 +332,6 @@ class SQLExecutorService:
             new_config: New execution configuration
         """
         self.config = new_config
-        logger.info("SQL Executor configuration updated")
     
     def health_check(self, app_state) -> dict:
         """

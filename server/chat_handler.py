@@ -154,10 +154,7 @@ class ChatHandler:
                 if attempt > 0:
                     import time
                     wait_time = min(2 ** (attempt - 1), 5)  # Exponential backoff, max 5 seconds
-                    self.logger.info(f"[LANGCHAIN_INIT] Retry attempt {attempt}/{max_retries} after {wait_time}s...")
                     time.sleep(wait_time)
-                else:
-                    self.logger.info("[LANGCHAIN_INIT] Starting lazy initialization...")
                 
                 try:
                     # Validate app_state and configuration
@@ -181,8 +178,6 @@ class ChatHandler:
                     self.sequential_chain = SequentialChain(chain_config)
                     self._langchain_initialized = True
                     
-                    retry_msg = f" (after {attempt} retries)" if attempt > 0 else ""
-                    self.logger.info(f"[LANGCHAIN_INIT] ✅ LangChain Sequential Chain initialized successfully{retry_msg}")
                     return True
                     
                 except Exception as e:
@@ -247,7 +242,6 @@ class ChatHandler:
             self.logger.error("[LANGCHAIN_INIT] Model name not configured in LLM config")
             return False
             
-        self.logger.info(f"[LANGCHAIN_INIT] Configuration validation passed - Model: {llm_config.model_name}")
         return True
     
     def _initialize_langchain(self, app_state=None) -> None:
@@ -278,8 +272,6 @@ class ChatHandler:
         self.processing_stats['total_requests'] += 1
         
         try:
-            self.logger.info(f"[CHAT_HANDLER_START] Processing query: {user_query[:100]}...")
-            
             # Step 1: Validate inputs
             self._validate_inputs(app_state, user_query)
             
@@ -295,7 +287,6 @@ class ChatHandler:
                 )
                 
                 processing_time = time.time() - start_time
-                self.logger.info(f"[CHAT_HANDLER_SUCCESS] Non-analytics query processed in {processing_time:.3f}s")
                 return response
             
             # Step 4: Process analytics query - build all contexts
@@ -315,7 +306,6 @@ class ChatHandler:
             )
             
             processing_time = time.time() - start_time
-            self.logger.info(f"[CHAT_HANDLER_SUCCESS] Analytics query processed in {processing_time:.3f}s")
             return final_prompt
             
         except Exception as e:
@@ -628,8 +618,6 @@ class ChatHandler:
         self.processing_stats['langchain_requests'] += 1
         
         try:
-            self.logger.info(f"[LANGCHAIN_HANDLER] Starting LangChain processing for session: {session_id}")
-            
             # Ensure LangChain is initialized with proper configuration
             if not self._ensure_langchain_initialized(app_state):
                 self.logger.error("[LANGCHAIN_HANDLER] Failed to initialize LangChain Sequential Chain")
@@ -664,7 +652,6 @@ class ChatHandler:
                 )
                 
                 processing_time = time.time() - start_time
-                self.logger.info(f"[LANGCHAIN_HANDLER] Non-analytics query processed in {processing_time:.3f}s")
                 return non_analytics_result
             
             # Step 4: Build contexts for LangChain processing
@@ -679,8 +666,6 @@ class ChatHandler:
             )
             
             # Step 6: Process through LangChain Sequential Chain
-            self.logger.info("[LANGCHAIN_HANDLER] Processing through Sequential Chain")
-            
             chain_result = self.sequential_chain.process(
                 final_prompt=final_prompt,
                 app_state=app_state,
@@ -691,11 +676,6 @@ class ChatHandler:
             processing_time = time.time() - start_time
             
             if chain_result.success:
-                self.logger.info(
-                    f"[LANGCHAIN_HANDLER] Sequential chain completed successfully in {processing_time:.3f}s - "
-                    f"Type: {chain_result.response_type}, "
-                    f"Chain time: {chain_result.total_processing_time_ms:.2f}ms"
-                )
                 return chain_result.final_response
             else:
                 self.logger.error(
@@ -770,7 +750,6 @@ What payment data would you like to explore?"""
     def clear_cache(self) -> None:
         """Clear all caches"""
         self.cache.clear_cache()
-        self.logger.info("Chat handler cache cleared")
 
 
 # Convenience functions for easy integration

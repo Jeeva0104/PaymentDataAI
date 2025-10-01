@@ -37,7 +37,6 @@ class MySQLConnectionPool:
             }
             
             self.pool = mysql.connector.pooling.MySQLConnectionPool(**pool_config)
-            logger.info(f"MySQL connection pool created successfully with {pool_config['pool_size']} connections")
             
         except Error as e:
             logger.error(f"Error creating MySQL connection pool: {e}")
@@ -79,7 +78,6 @@ class MySQLConnectionPool:
         try:
             if self.pool:
                 # Close all connections in pool
-                logger.info("Closing MySQL connection pool")
                 # Note: mysql-connector-python doesn't have a direct close_all method
                 # Connections will be closed when the pool object is destroyed
                 self.pool = None

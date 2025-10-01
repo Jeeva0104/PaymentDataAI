@@ -24,8 +24,6 @@ def register_websocket_events(socketio):
             session_id = request.sid
             client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
             
-            logger.info(f"Client connected: {session_id} from {client_ip}")
-            
             # Get app state
             app_state = get_app_state()
             
@@ -65,7 +63,6 @@ def register_websocket_events(socketio):
         """Handle client disconnection"""
         try:
             session_id = request.sid
-            logger.info(f"Client disconnected: {session_id}")
             
             # Get app state
             app_state = get_app_state()
@@ -94,7 +91,6 @@ def register_websocket_events(socketio):
         """
         try:
             session_id = request.sid
-            logger.info(f"Received user-query from {session_id}: {data}")
             
             # Validate input data
             if not isinstance(data, dict):
@@ -181,7 +177,6 @@ def register_websocket_events(socketio):
         """Get ChatHandler processing statistics"""
         try:
             session_id = request.sid
-            logger.info(f"Chat stats requested by session: {session_id}")
             
             # Create ChatHandler instance to get stats
             handler = ChatHandler()
@@ -202,7 +197,6 @@ def register_websocket_events(socketio):
         """Clear ChatHandler cache"""
         try:
             session_id = request.sid
-            logger.info(f"Cache clear requested by session: {session_id}")
             
             handler = ChatHandler()
             handler.clear_cache()
@@ -373,8 +367,6 @@ def process_user_query(query: str, session_id: str, app_state) -> dict:
     """
     
     try:
-        logger.info(f"[WEBSOCKET_CHAT] Session {session_id}: {query[:50]}...")
-        
         # Get DataSummaryResult object from LangChain
         data_summary_result = process_chat_request_with_langchain(app_state, query, session_id)
         

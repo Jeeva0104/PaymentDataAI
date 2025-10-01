@@ -48,14 +48,6 @@ class SQLGeneratorService:
             api_base = self.config.api_base
             model_name = self.config.model_name
             
-            # Enhanced configuration logging
-            logger.info(f"[SQL_GEN_CONFIG] Initializing LLM with configuration:")
-            logger.info(f"[SQL_GEN_CONFIG] Model: {model_name}")
-            logger.info(f"[SQL_GEN_CONFIG] API Base: {api_base[:50] + '...' if api_base and len(api_base) > 50 else api_base}")
-            logger.info(f"[SQL_GEN_CONFIG] API Key: {'SET (' + str(len(api_key)) + ' chars)' if api_key else 'MISSING'}")
-            logger.info(f"[SQL_GEN_CONFIG] Temperature: {self.config.sql_generation_temperature}")
-            logger.info(f"[SQL_GEN_CONFIG] Timeout: {self.config.timeout_seconds}s")
-            
             if not api_key:
                 raise SQLGenerationError("AI API key not configured in app_state")
             
@@ -66,7 +58,6 @@ class SQLGeneratorService:
                 raise SQLGenerationError("AI model name not configured in app_state")
             
             # Initialize ChatOpenAI with Google AI endpoint
-            logger.info(f"[SQL_GEN_CONFIG] Creating ChatOpenAI instance...")
             self.llm = ChatOpenAI(
                 model=model_name,
                 openai_api_base=api_base,
@@ -74,8 +65,6 @@ class SQLGeneratorService:
                 temperature=self.config.sql_generation_temperature,
                 timeout=self.config.timeout_seconds
             )
-            
-            logger.info(f"[SQL_GEN_CONFIG] ✅ SQL Generator LLM initialized successfully with model: {model_name}")
             
         except Exception as e:
             logger.error(f"[SQL_GEN_CONFIG] ❌ Failed to initialize LLM: {type(e).__name__}: {e}")
@@ -111,8 +100,6 @@ SQL Query:"""
             output_parser = StrOutputParser()
             self.chain = prompt | self.llm | output_parser
             
-            logger.info("SQL generation chain initialized successfully")
-            
         except Exception as e:
             logger.error(f"Failed to initialize chain: {e}")
             raise SQLGenerationError(f"Chain initialization failed: {e}", e)
@@ -130,8 +117,6 @@ SQL Query:"""
         start_time = time.time()
         
         try:
-            logger.info("[SQL_GEN_DEBUG] 🚀 Starting SQL generation")
-            
             # Validate input
             if not final_prompt or not final_prompt.strip():
                 logger.error("[SQL_GEN_DEBUG] ❌ Empty final_prompt provided")
@@ -140,27 +125,19 @@ SQL Query:"""
                     error="Empty final_prompt provided"
                 )
             
-            # Enhanced prompt analysis
-            logger.info(f"[SQL_GEN_DEBUG] 📝 Input Analysis:")
-            logger.info(f"[SQL_GEN_DEBUG]   - Prompt length: {len(final_prompt)} characters")
-            logger.info(f"[SQL_GEN_DEBUG]   - Prompt lines: {len(final_prompt.splitlines())} lines")
-            logger.debug(f"[SQL_GEN_DEBUG]   - First 300 chars: {final_prompt[:300]}...")
-            logger.debug(f"[SQL_GEN_DEBUG]   - Last 200 chars: ...{final_prompt[-200:]}")
-            
             # Check for key sections in prompt
             has_system = "[SYSTEM CONTEXT]" in final_prompt
             has_tool = "[TOOL CONTEXT]" in final_prompt
             has_user = "[USER CONTEXT]" in final_prompt
-            logger.info(f"[SQL_GEN_DEBUG] 📋 Prompt sections: System={has_system}, Tool={has_tool}, User={has_user}")
+            logger.debug(f"[SQL_GEN_DEBUG]   - First 300 chars: {final_prompt[:300]}...")
+            logger.debug(f"[SQL_GEN_DEBUG]   - Last 200 chars: ...{final_prompt[-200:]}")
             
-            # LLM invocation with detailed logging
-            logger.info(f"[SQL_GEN_DEBUG] 🤖 Invoking LLM chain...")
-            logger.info(f"[SQL_GEN_DEBUG]   - Model: {self.config.model_name}")
-            logger.info(f"[SQL_GEN_DEBUG]   - Temperature: {self.config.sql_generation_temperature}")
+            # LLM invocation with logging
+            logger.info("Starting LLM call")
             
             try:
                 sql_query = self.chain.invoke({"final_prompt": final_prompt})
-                logger.info(f"[SQL_GEN_DEBUG] ✅ LLM call completed successfully")
+                logger.info("LLM call completed")
             except Exception as llm_error:
                 logger.error(f"[SQL_GEN_DEBUG] ❌ LLM call failed: {type(llm_error).__name__}: {llm_error}")
                 
@@ -179,21 +156,11 @@ SQL Query:"""
                 
                 raise llm_error
             
-            # Raw response analysis
-            logger.info(f"[SQL_GEN_DEBUG] 📤 Raw LLM Response Analysis:")
-            logger.info(f"[SQL_GEN_DEBUG]   - Response type: {type(sql_query).__name__}")
-            logger.info(f"[SQL_GEN_DEBUG]   - Response length: {len(str(sql_query))} characters")
-            logger.info(f"[SQL_GEN_DEBUG]   - Is empty: {not sql_query or not str(sql_query).strip()}")
-            logger.debug(f"[SQL_GEN_DEBUG]   - Raw response: '{sql_query}'")
-            
-            # Clean up the generated SQL with detailed logging
-            logger.info(f"[SQL_GEN_DEBUG] 🧹 Cleaning SQL output...")
+            # Clean up the generated SQL
             original_sql = sql_query
             cleaned_sql = self._clean_sql_output(sql_query)
             
-            logger.info(f"[SQL_GEN_DEBUG] 📋 Cleaning Results:")
-            logger.info(f"[SQL_GEN_DEBUG]   - Original length: {len(str(original_sql))}")
-            logger.info(f"[SQL_GEN_DEBUG]   - Cleaned length: {len(str(cleaned_sql))}")
+            logger.debug(f"[SQL_GEN_DEBUG]   - Raw response: '{sql_query}'")
             logger.debug(f"[SQL_GEN_DEBUG]   - Before cleaning: '{original_sql}'")
             logger.debug(f"[SQL_GEN_DEBUG]   - After cleaning: '{cleaned_sql}'")
             
@@ -216,10 +183,6 @@ SQL Query:"""
             # Calculate processing time
             generation_time_ms = (time.time() - start_time) * 1000
             
-            logger.info(f"[SQL_GEN_DEBUG] ✅ SQL generation completed successfully!")
-            logger.info(f"[SQL_GEN_DEBUG]   - Processing time: {generation_time_ms:.2f}ms")
-            logger.info(f"[SQL_GEN_DEBUG]   - Query type: {query_type}")
-            logger.info(f"[SQL_GEN_DEBUG]   - Final SQL length: {len(cleaned_sql)} chars")
             logger.debug(f"[SQL_GEN_DEBUG]   - Final SQL: {cleaned_sql[:200]}...")
             
             return SQLGenerationResult(
@@ -324,7 +287,6 @@ SQL Query:"""
         self.config = new_config
         self._initialize_llm()
         self._initialize_chain()
-        logger.info("SQL Generator configuration updated")
     
     def health_check(self) -> dict:
         """

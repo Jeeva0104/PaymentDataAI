@@ -45,7 +45,6 @@ class RedisConnectionManager:
             
             # Test connection
             self.client.ping()
-            logger.info(f"Redis connection established successfully to {self.config['host']}:{self.config['port']}")
             
         except redis.RedisError as e:
             logger.error(f"Error creating Redis connection: {e}")
@@ -86,11 +85,9 @@ class RedisConnectionManager:
         try:
             if self.client:
                 self.client.close()
-                logger.info("Redis connection closed")
             
             if self.pool:
                 self.pool.disconnect()
-                logger.info("Redis connection pool closed")
                 
         except Exception as e:
             logger.error(f"Error closing Redis connection: {e}")

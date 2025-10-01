@@ -30,35 +30,27 @@ class AppState:
             True if initialization successful, False otherwise
         """
         try:
-            logger.info("Initializing app state...")
-
             # Load configuration
             self.config = load_config()
             if not validate_config(self.config):
                 logger.error("Configuration validation failed")
                 return False
 
-            logger.info("Configuration loaded and validated successfully")
-
             # Initialize MySQL connection pool
             self.mysql_connection = create_mysql_pool(self.config["mysql"])
-            logger.info("MySQL connection pool initialized")
 
             # Initialize Redis connection
             self.redis_connection = create_redis_connection(self.config["redis"])
-            logger.info("Redis connection initialized")
 
             # Initialize WebSocket manager
             self.websocket_config = create_websocket_manager(
                 app, self.config["websocket"]
             )
-            logger.info("WebSocket manager initialized")
 
             # Register cleanup handlers
             atexit.register(self.cleanup)
 
             self._initialized = True
-            logger.info("App state initialization completed successfully")
             return True
 
         except Exception as e:
@@ -217,24 +209,19 @@ class AppState:
 
     def cleanup(self) -> None:
         """Clean up all connections and resources"""
-        logger.info("Cleaning up app state...")
-
         try:
             if self.mysql_connection:
                 self.mysql_connection.close_pool()
-                logger.info("MySQL connection pool closed")
         except Exception as e:
             logger.error(f"Error closing MySQL connection pool: {e}")
 
         try:
             if self.redis_connection:
                 self.redis_connection.close_connection()
-                logger.info("Redis connection closed")
         except Exception as e:
             logger.error(f"Error closing Redis connection: {e}")
 
         self._initialized = False
-        logger.info("App state cleanup completed")
 
 
 # Global app state instance

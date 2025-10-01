@@ -51,8 +51,6 @@ class SequentialChain:
         self.sql_executor = SQLExecutorService(self.config.execution_config)
         self.data_summarizer = DataSummarizerService(self.config.llm_config)
 
-        logger.info("Sequential Chain initialized with all services")
-
     def process(
         self, final_prompt: str, app_state, user_query: str = "", session_id: str = ""
     ) -> SequentialChainResult:
@@ -71,21 +69,11 @@ class SequentialChain:
         start_time = time.time()
 
         try:
-            logger.info(
-                f"[CHAIN_DEBUG] 🚀 Starting processing for session: {session_id}"
-            )
-            logger.info(f"[CHAIN_DEBUG] 📝 Input Analysis:")
-            logger.info(
-                f"[CHAIN_DEBUG]   - Final prompt length: {len(final_prompt)} chars"
-            )
-            logger.info(f"[CHAIN_DEBUG]   - User query: {user_query[:100]}...")
             logger.debug(
                 f"[CHAIN_DEBUG]   - Full prompt preview: {final_prompt[:500]}..."
             )
 
             # Step 1: SQL Generation
-            logger.info("[CHAIN_DEBUG] 🔄 Step 1: SQL Generation")
-            logger.info(final_prompt)
             sql_result = self.sql_generator.generate_sql(final_prompt)
 
             if not sql_result.success:
@@ -100,12 +88,7 @@ class SequentialChain:
                 result.total_processing_time_ms = (time.time() - start_time) * 1000
                 return result
 
-            logger.info(
-                f"[SEQUENTIAL_CHAIN] SQL generated successfully: {sql_result.sql_query}"
-            )
-
             # Step 2: SQL Validation
-            logger.info("[SEQUENTIAL_CHAIN] Step 2: SQL Validation")
             validation_context = {"session_id": session_id, "user_query": user_query}
             validation_result = self.sql_validator.validate_sql_with_context(
                 sql_result.sql_query, validation_context
@@ -124,10 +107,7 @@ class SequentialChain:
                 result.total_processing_time_ms = (time.time() - start_time) * 1000
                 return result
 
-            logger.info("[SEQUENTIAL_CHAIN] SQL validation passed")
-
             # Step 3: SQL Execution
-            logger.info("[SEQUENTIAL_CHAIN] Step 3: SQL Execution")
             execution_context = {"session_id": session_id, "user_query": user_query}
             execution_result = self.sql_executor.execute_sql_with_context(
                 sql_result.sql_query, app_state, execution_context
@@ -147,12 +127,7 @@ class SequentialChain:
                 result.total_processing_time_ms = (time.time() - start_time) * 1000
                 return result
 
-            logger.info(
-                f"[SEQUENTIAL_CHAIN] SQL executed successfully, returned {execution_result.row_count} rows"
-            )
-
             # Step 4: Data Summarization
-            logger.info("[SEQUENTIAL_CHAIN] Step 4: Data Summarization")
             summary_result = self.data_summarizer.summarize_data(
                 execution_result, user_query, sql_result.sql_query
             )
@@ -183,10 +158,6 @@ class SequentialChain:
                         completion_tokens=0
                     )
 
-                    logger.info(
-                        "[SEQUENTIAL_CHAIN] Using fallback DataSummaryResult due to LLM failure"
-                    )
-
                     result = create_success_result(
                         fallback_result, "data", user_query, session_id
                     )
@@ -210,8 +181,6 @@ class SequentialChain:
                     return result
 
             # All steps successful - return DataSummaryResult object
-            logger.info("[SEQUENTIAL_CHAIN] All steps completed successfully")
-
             result = create_success_result(
                 summary_result, "summary", user_query, session_id
             )
@@ -220,14 +189,6 @@ class SequentialChain:
             result.sql_execution = execution_result
             result.data_summary = summary_result
             result.total_processing_time_ms = (time.time() - start_time) * 1000
-
-            # Log final statistics
-            logger.info(
-                f"[SEQUENTIAL_CHAIN] Processing complete - "
-                f"Total time: {result.total_processing_time_ms:.2f}ms, "
-                f"Rows: {execution_result.row_count}, "
-                f"Tokens: {result.total_prompt_tokens + result.total_completion_tokens}"
-            )
 
             return result
 
@@ -268,18 +229,9 @@ class SequentialChain:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                if attempt > 0:
-                    logger.info(
-                        f"[SEQUENTIAL_CHAIN] Retry attempt {attempt}/{self.config.max_retries}"
-                    )
-
                 result = self.process(final_prompt, app_state, user_query, session_id)
 
                 if result.success:
-                    if attempt > 0:
-                        logger.info(
-                            f"[SEQUENTIAL_CHAIN] Retry successful on attempt {attempt}"
-                        )
                     return result
 
                 last_result = result
@@ -289,9 +241,6 @@ class SequentialChain:
                     "sql_validation_error",
                     "sql_execution_error",
                 ]:
-                    logger.info(
-                        f"[SEQUENTIAL_CHAIN] Not retrying {result.response_type}"
-                    )
                     break
 
             except Exception as e:
@@ -397,8 +346,6 @@ class SequentialChain:
         self.sql_validator.update_config(new_config.validation_config)
         self.sql_executor.update_config(new_config.execution_config)
         self.data_summarizer.update_config(new_config.llm_config)
-
-        logger.info("Sequential Chain configuration updated")
 
     def test_end_to_end(self, app_state) -> dict:
         """

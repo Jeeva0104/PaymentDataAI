@@ -212,12 +212,6 @@ curl http://localhost:5000/health/detailed
 curl http://localhost:5000/stats
 ```
 
-### 2. Test WebSocket Functionality
-Open `test_client.html` in your browser:
-```bash
-# Open the test client
-open test_client.html
-# or
-python -m http.server 8000
-# Then navigate to http://localhost:8000/test_client.html
-```
+### 2. Test WebSocket 
+
+Open `http://localhost:3000` in your browser

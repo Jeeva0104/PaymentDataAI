@@ -140,19 +140,7 @@ class LLMConfig:
         Returns:
             LLMConfig instance with values from app_state
         """
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info(f"[LLM_CONFIG_DEBUG] 🔧 Loading configuration from app_state...")
-        
         ai_config = app_state.config.get('ai', {})
-        
-        logger.info(f"[LLM_CONFIG_DEBUG] 📋 AI config keys available: {list(ai_config.keys())}")
-        logger.info(f"[LLM_CONFIG_DEBUG] 🤖 Model name: {ai_config.get('model_name', 'NOT_SET')}")
-        logger.info(f"[LLM_CONFIG_DEBUG] 🔑 API key: {'SET (' + str(len(ai_config.get('api_key', ''))) + ' chars)' if ai_config.get('api_key') else 'NOT_SET'}")
-        logger.info(f"[LLM_CONFIG_DEBUG] 🌐 API base: {ai_config.get('api_base', 'NOT_SET')}")
-        logger.info(f"[LLM_CONFIG_DEBUG] 🌡️ Temperature: {ai_config.get('temperature', 'DEFAULT')}")
-        logger.info(f"[LLM_CONFIG_DEBUG] ⏱️ Timeout: {ai_config.get('timeout_seconds', 'DEFAULT')}s")
         
         config = cls(
             model_name=ai_config.get('model_name', ''),
@@ -164,7 +152,6 @@ class LLMConfig:
             summary_temperature=ai_config.get('summary_temperature', 0.3),
         )
         
-        logger.info(f"[LLM_CONFIG_DEBUG] ✅ LLMConfig created successfully")
         return config
 
 
