@@ -14,6 +14,8 @@
                         │    Pipeline     │
                         └─────────────────┘
 ```
+# Application Demo
+![App Demo](docs/video.mov)
 
 **Components:**
 - **React Client**: Modern web interface with real-time chat capabilities
